@@ -1,5 +1,7 @@
 # handwriting-numerals-recognition
 # 1.1卷积神经网络简介
+
+神经网络的链接  http://t.csdn.cn/ZdByH
 @[toc]
 卷积网络的核心思想是将：
 局部感受野
