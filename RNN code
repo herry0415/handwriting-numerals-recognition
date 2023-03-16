@@ -1,0 +1,44 @@
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+data = pd.read_csv('F:\S\\train.csv')
+train_image = data.iloc[:,1:] / 255.0
+train_label = data.iloc[:,0]
+
+data1 = pd.read_csv('F:\S\\test.csv')
+test_image = data1.iloc[:,1:] / 255.0
+test_label = data1.iloc[:,0]
+
+model = tf.keras.Sequential()
+model.add(tf.keras.layers.Dense(64,input_shape=(784,),activation='relu'))
+model.add(tf.keras.layers.Dense(128,activation='relu'))
+model.add(tf.keras.layers.Dropout(0.2))
+model.add(tf.keras.layers.Dense(128,activation='relu'))
+model.add(tf.keras.layers.Dropout(0.2))
+model.add(tf.keras.layers.Dense(10,activation='softmax'))
+
+model.summary()
+
+model.compile(optimizer='adam',
+              loss = 'sparse_categorical_crossentropy',
+              metrics = ['acc']
+)
+history = model.fit(train_image,train_label,batch_size=128,epochs=18,
+                   validation_data=(test_image,test_label))
+
+plt.plot(history.epoch,history.history.get('acc'),label='acc')
+plt.plot(history.epoch,history.history.get('val_acc'),label='val_acc')
+plt.legend()
+
+model.evaluate(test_image,test_label,batch_size=1)
+# 可视化
+for i in range(9):
+    plt.subplot(3,3,i+1)
+    plt.imshow(data1.iloc[i,1:].values.reshape(28,28))
+
+# 文件存储
+result_dig = pd.DataFrame({"ImageId":index1,
+             "Label":result1})
+result_dig.to_csv('F:\S\\result.csv')
