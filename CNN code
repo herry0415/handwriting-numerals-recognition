@@ -1,0 +1,122 @@
+import datetime
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+import pandas as pd
+from sklearn.metrics import precision_score
+
+def image_transform(x_train, x_test):
+    # 将28*28图像转成32*32的格式
+    x_train = np.pad(x_train, ((0, 0), (2, 2), (2, 2)), 'constant', constant_values=0)
+    x_test = np.pad(x_test, ((0, 0), (2, 2), (2, 2)), 'constant', constant_values=0)
+
+    # 数据类型转换 -> 换成tf需要的
+    x_train = x_train.astype('float32')
+    x_test = x_test.astype('float32')
+
+    # 数据正则化 -> 转换成(0,1)之间
+    x_train /= 255
+    x_test /= 255
+
+    # 数据维度转换 四维 [n,h,w,c] n -> number, h -> 高度, w -> 宽度, c -> 通道
+    x_train = x_train.reshape(x_train.shape[0], 32, 32, 1)
+    x_test = x_test.reshape(x_test.shape[0], 32, 32, 1)
+    # print(x_test.shape)
+    return x_train, x_test
+
+def train_model(x_train, y_train, batch_size, num_epochs):
+    '''
+    构建模型，训练模型
+    返回训练好的模型
+
+    参数：
+    ——————————————
+    x_trian:训练集
+    y_trian:训练集标签
+    batch_size:批大小
+    num_epochs:训练次数
+    filters:卷积核个数
+    kernel_size:卷积核大小
+    padding:填充方式
+    activation：激活函数
+    input_shape:输入数据格式
+    pool_size：池化大小
+    strides:步长
+    units：输出的维数
+    '''
+    model = tf.keras.models.Sequential([
+        # 第一卷积层
+        tf.keras.layers.Conv2D(filters=36, kernel_size=(5, 5), padding='valid', activation=tf.nn.relu,
+                               input_shape=(32, 32, 1)),
+        # 第二层池化层 平均池化
+        tf.keras.layers.AveragePooling2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
+        # 第三层卷积层
+        tf.keras.layers.Conv2D(filters=36, kernel_size=(5, 5), padding='valid', activation=tf.nn.relu),
+        # 第四层池化层 平均池化
+        tf.keras.layers.AveragePooling2D(pool_size=(2, 2), strides=(2, 2), padding='same'),
+        # 扁平化层 将多维数据转化一维数据
+        tf.keras.layers.Flatten(),
+        # 第五层 全连接层  激活函数是relu
+        tf.keras.layers.Dense(units=128, activation=tf.nn.relu),
+        # Dropout 层 随机舍弃神经元的比例
+        tf.keras.layers.Dropout(0.3),
+        # 准确率 0.3 => 99.12% 0.5  =>  99.04%
+        # 第六层 全连接层  激活函数是relu
+        tf.keras.layers.Dense(units=64, activation=tf.nn.relu),
+        tf.keras.layers.Dropout(0.3),
+        # 第七层 全连接层  激活函数是softmax
+        tf.keras.layers.Dense(units=10, activation=tf.nn.softmax)
+    ])
+    # 优化器
+    adam_optimizer = tf.keras.optimizers.Adam(learning_rate, )
+    # 编译模型
+    model.compile(optimizer=adam_optimizer,
+                  loss=tf.keras.losses.sparse_categorical_crossentropy,
+                  metrics=['acc'])
+    # 模型开始训练
+    start_time = datetime.datetime.now()
+    # 训练模型
+    history = model.fit(x=x_train, y=y_train, batch_size=batch_size, epochs=num_epochs,
+                        validation_data=(x_test, y_test))
+
+    # 模型结束训练
+    end_time = datetime.datetime.now()
+    time_cost = end_time - start_time
+    print('时间花费：', time_cost)
+    # 检查模型拟合情况
+    plt.plot(history.epoch, history.history.get('acc'), label='acc')
+    plt.plot(history.epoch, history.history.get('val_acc'), label='val_acc')
+    plt.legend()
+
+    return model
+if name == '__name__':
+    # 定义参数 ：
+    num_epochs = 20
+    batch_size = 128
+    learning_rate = 0.001
+    # 检查数据格式
+    # print(x_train[0])
+
+    # 读取数据
+    data = pd.read_csv('F:\S\\train.csv')
+    x_train = data.iloc[:, 1:]
+    x_train = np.array(x_train).reshape(42000, 28, 28)
+    y_train = np.array(data.iloc[:, 0])
+    data1 = pd.read_csv('F:\S\\test.csv')
+    x_test = data1.iloc[:, 1:]
+    x_test = np.array(x_test).reshape(28000, 28, 28)
+    y_test = np.array(data1.iloc[:, 0])
+    # 数据转换和模型训练
+    x_train, x_test = image_transform(x_train, x_test)
+    model = train_model(x_train, y_train, batch_size, num_epochs)
+    # 参数量表
+    print(model.summary())
+    # 预测结果分析
+    image_index = 123
+    pred = model.predict(x_test[image_index].reshape(1, 32, 32, 1), )
+    print('预测结果', pred.argmax())
+    print(model.evaluate(x_test, y_test, verbose=2))
+    # 数据可视化
+    for i in range(25):
+        plt.subplot(5, 5, i + 1)
+        plt.imshow(x_test[i].reshape(32, 32))
